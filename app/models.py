@@ -2,6 +2,8 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
+from rest_framework import serializers
+
 
 # Create your models here.
 class Patient(models.Model):
@@ -40,4 +42,7 @@ class Appointment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return f"{self.patient} - {self.slot} - {self.status} - {self.created_at}"
+
+
+
 

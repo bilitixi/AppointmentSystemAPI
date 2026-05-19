@@ -66,3 +66,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "end_time": slot.end_time,
             "speciality": slot.speciality
         }
+class UserSerializer(serializers.ModelSerializer):
+
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'password']
+        xtra_kwargs = {'password': {'write_only': True, 'required': True}}
+    def create(self, validated_data): # overwrite create function of serializer
+        user = User.objects.create_user(**validated_data)
+        return user
