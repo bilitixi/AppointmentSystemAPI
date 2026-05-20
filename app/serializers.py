@@ -33,6 +33,45 @@ class AppointmentSlotsSerializer(serializers.ModelSerializer):
         if obj.doctor:
             return str(obj.doctor)
         return None
+
+    def validate(self, attrs):
+        # Check for overlapping time slots for the same doctor on the same date
+        doctor = attrs.get('doctor')
+        date = attrs.get('date')
+        start_time = attrs.get('start_time')
+        end_time = attrs.get('end_time')
+
+        # If any required field is missing, let other validations handle it
+        if doctor is None or date is None or start_time is None or end_time is None:
+            return attrs
+
+        # Check if start_time is before end_time
+        if start_time >= end_time:
+            raise serializers.ValidationError({
+                'start_time': 'Start time must be before end time.',
+                'end_time': 'End time must be after start time.'
+            })
+
+        # Find existing slots for the same doctor and date
+        existing_slots = AppointmentSlots.objects.filter(
+            doctor=doctor,
+            date=date
+        )
+
+        # Exclude current instance if we're updating
+        if self.instance:
+            existing_slots = existing_slots.exclude(pk=self.instance.pk)
+
+        # Check for overlaps
+        for slot in existing_slots:
+            # Slots overlap if: start1 < end2 AND start2 < end1
+            if start_time < slot.end_time and slot.start_time < end_time:
+                raise serializers.ValidationError({
+                    'start_time': f'Time slot overlaps with existing slot from {slot.start_time} to {slot.end_time}.',
+                    'end_time': f'Time slot overlaps with existing slot from {slot.start_time} to {slot.end_time}.'
+                })
+
+        return attrs
 class AppointmentSerializer(serializers.ModelSerializer):
 
     patient_name = serializers.SerializerMethodField()

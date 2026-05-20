@@ -6,7 +6,7 @@ from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
 from app.serializers import PatientSerializer, DoctorSerializer, AppointmentSerializer, AppointmentSlotsSerializer, \
     UserSerializer
-
+from django.db import transaction
 
 class DoctorViewSet(viewsets.ModelViewSet):
 
@@ -43,7 +43,8 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         if self.request.user.is_staff:
-            serializer.save()
+            with transaction.atomic():
+               serializer.save(is_booked=False)
             return
         else:
             # get patient
@@ -55,19 +56,19 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     "Patient profile not found"
                 )
+            with transaction.atomic():
+                # create appointment slot
+                slot = serializer.save(
+                    doctor=None,
+                    is_booked=False
+                )
 
-            # create appointment slot
-            slot = serializer.save(
-                doctor=None,
-                is_booked=False
-            )
-
-            # create appointment
-            Appointment.objects.create(
-                patient=patient,
-                slot=slot,
-                status='pending'
-            )
+                # create appointment
+                Appointment.objects.create(
+                    patient=patient,
+                    slot=slot,
+                    status='pending'
+                )
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -94,51 +95,57 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         # Admin create new appointment
         if self.request.user.is_staff:
-            serializer.save()
+            slot = serializer.validated_data.get('slot')
+            if not slot:
+                raise serializers.ValidationError("Slot not found")
+            elif  slot.doctor is None:
+                raise serializers.ValidationError("This slot is not valid to assign")
+
+            with transaction.atomic():
+                slot = AppointmentSlots.objects.select_for_update().get(id=slot.id)
+                slot.is_booked = True
+                slot.save()
+                serializer.save(status='confirmed')
             return
 
-        #  Get logged in patient
-        patient = Patient.objects.filter(
-            user=self.request.user
-        ).first()
-
+        #  Patient book a slot
+        patient = Patient.objects.filter(user=self.request.user).first()
         if not patient:
-            raise serializers.ValidationError(
-                "Patient profile not found"
-            )
+            raise serializers.ValidationError("Patient profile not found")
 
-        # Get selected slot
+        # Get slot from validated data (outside transaction)
         slot = serializer.validated_data.get('slot')
-
         if not slot:
-            raise serializers.ValidationError(
-                "Slot not found"
-            )
+            raise serializers.ValidationError("Slot not found")
 
-        # Prevent double booking
-        if slot.is_booked:
-            raise serializers.ValidationError(
-                "This slot is already booked"
-            )
+        with transaction.atomic():
+            # Fetch slot from database with lock to prevent race conditions
+            # Use slot.id from the object we got above
+            slot = AppointmentSlots.objects.select_for_update().get(id=slot.id)
 
-        # Mark slot booked
-        slot.is_booked = True
-        slot.save()
+            # Prevent double booking
+            if slot.is_booked:
+                raise serializers.ValidationError("This slot is already booked")
 
-        # Create appointment
-        serializer.save(
-            patient=patient,
-            status='confirmed'
-        )
+            # Mark slot booked
+            slot.is_booked = True
+            slot.save()
 
+            # Create appointment (inside transaction - critical fix!)
+            serializer.save(patient=patient, status='confirmed', slot=slot)
 
     # delete appointment
     def perform_destroy(self, instance):
-        # Free slot
-        if instance.slot is not None:
-            slot = instance.slot
+
+        slot = instance.slot
+        # Free slot if slot is allocated doctors
+        if slot.doctor is not None:
+
             slot.is_booked = False
             slot.save()
+        # delete slot if doctor is not allocated to slot
+        else:
+           slot.delete()
 
         instance.delete()
 
@@ -147,19 +154,22 @@ class PatientViewSet(viewsets.ModelViewSet):
     serializer_class = PatientSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return Patient.objects.all()
+        return Patient.objects.filter(user=self.request.user)
 
-    def get_permissions(self):
-        # OWNER delete rule first
-        if self.action == 'destroy':
-            return [permissions.IsAuthenticated(), IsOwnerOnly()]
 
-        # ADMIN write rules
-        if self.action in ['create', 'update', 'partial_update']:
-            return [IsAdminStaff()]
+    def perform_create(self, serializer):
+        if self.request.user.is_staff:
+            serializer.save()
+            return
+        user = self.request.user
+        serializer.save(user=user)
 
-        # default read access
-        return [permissions.IsAuthenticated()]
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
+
+
