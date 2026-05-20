@@ -118,3 +118,46 @@ class UserSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         Token.objects.create(user=user) # create token
         return user
+class RegisterSerializer(serializers.ModelSerializer):
+    patient_firstName = serializers.CharField(write_only=True)
+    patient_lastName = serializers.CharField(write_only=True)
+    patient_phone = serializers.CharField(write_only=True)
+    patient_date_of_birth = serializers.DateField(write_only=True)
+    patient_address = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'password',
+            'patient_firstName',
+            'patient_lastName',
+            'patient_phone',
+            'patient_date_of_birth',
+            'patient_address'
+        ]
+
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def create(self, validated_data):
+
+        patient_firstName = validated_data.pop('patient_firstName')
+        patient_lastName = validated_data.pop('patient_lastName')
+        patient_phone = validated_data.pop('patient_phone')
+        patient_date_of_birth = validated_data.pop('patient_date_of_birth')
+        patient_address = validated_data.pop('patient_address')
+
+        user = User.objects.create_user(**validated_data)
+        Token.objects.create(user=user)  # create token
+        Patient.objects.create(
+            user=user,
+            firstName=patient_firstName,
+            lastName=patient_lastName,
+            phone=patient_phone,
+            date_of_birth=patient_date_of_birth,
+            address=patient_address
+        )
+
+        return user
