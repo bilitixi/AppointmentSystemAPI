@@ -1,9 +1,11 @@
+from django.contrib.auth.models import User
 from rest_framework import viewsets, permissions, serializers
 from rest_framework.permissions import AllowAny
 
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
-from app.serializers import PatientSerializer, DoctorSerializer, AppointmentSerializer, AppointmentSlotsSerializer
+from app.serializers import PatientSerializer, DoctorSerializer, AppointmentSerializer, AppointmentSlotsSerializer, \
+    UserSerializer
 
 
 class DoctorViewSet(viewsets.ModelViewSet):
@@ -157,3 +159,7 @@ class PatientViewSet(viewsets.ModelViewSet):
 
         # default read access
         return [permissions.IsAuthenticated()]
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]

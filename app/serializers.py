@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
+
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -72,7 +74,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'password']
-        xtra_kwargs = {'password': {'write_only': True, 'required': True}}
+        extra_kwargs = {'password': {'write_only': True, 'required': True}}
     def create(self, validated_data): # overwrite create function of serializer
         user = User.objects.create_user(**validated_data)
+        Token.objects.create(user=user) # create token
         return user
