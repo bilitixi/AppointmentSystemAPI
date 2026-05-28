@@ -1,6 +1,9 @@
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from rest_framework import viewsets, permissions, serializers, generics
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
@@ -172,8 +175,30 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return User.objects.all()
+        return None
+
+
+
 
 class RegisterViewSet(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_auth(request):
+    return Response({"valid": True})
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    user = request.user
+
+    return Response({
+        "id": user.id,
+        "username": user.username,
+        "is_staff": user.is_staff
+    })
