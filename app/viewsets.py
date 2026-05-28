@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from rest_framework import viewsets, permissions, serializers, generics
@@ -202,3 +204,12 @@ def me(request):
         "username": user.username,
         "is_staff": user.is_staff
     })
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getdoctorappointment(request, doctor_id):
+    # define date range
+    today = date.today()
+    next_7_days = today + timedelta(days=7)
+    appointments = AppointmentSlots.objects.filter(doctor_id=doctor_id, date__range=[today, next_7_days]).order_by('date', 'start_time')
+    serializer = AppointmentSlotsSerializer(appointments, many=True)
+    return Response(serializer.data)
