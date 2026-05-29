@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, timedelta
 
 from django.contrib.auth.models import User
@@ -29,6 +30,7 @@ class DoctorViewSet(viewsets.ModelViewSet):
 
 
 
+
 class AppointmentSlotViewSet(viewsets.ModelViewSet):
 
 
@@ -42,9 +44,10 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
         if self.request.user.is_staff:
             return AppointmentSlots.objects.all()
 
-        # user sees only own requested slots
+        # user sees only appointment slots with doctors allocated
         return AppointmentSlots.objects.filter(
-            appointment__patient__user=self.request.user
+            doctor__isnull=False
+
         )
 
     def perform_create(self, serializer):
@@ -58,16 +61,29 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
                 user=self.request.user
             ).first()
 
+
             if not patient:
                 raise serializers.ValidationError(
                     "Patient profile not found"
                 )
             with transaction.atomic():
+                # check BEFORE saving anything
+                if Appointment.objects.filter(
+                        patient=patient,
+                        slot__date=serializer.validated_data["date"],
+                        slot__start_time__lt=serializer.validated_data["end_time"],
+                        slot__end_time__gt=serializer.validated_data["start_time"]
+                ).exists():
+                    raise serializers.ValidationError(
+                        "Overlapping appointment exists"
+                    )
+
                 # create appointment slot
                 slot = serializer.save(
                     doctor=None,
                     is_booked=False
                 )
+
 
                 # create appointment
                 Appointment.objects.create(
@@ -206,10 +222,33 @@ def me(request):
     })
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def getdoctorappointment(request, doctor_id):
-    # define date range
-    today = date.today()
-    next_7_days = today + timedelta(days=7)
-    appointments = AppointmentSlots.objects.filter(doctor_id=doctor_id, date__range=[today, next_7_days]).order_by('date', 'start_time')
-    serializer = AppointmentSlotsSerializer(appointments, many=True)
-    return Response(serializer.data)
+def doctors_with_slots(request):
+
+    doctors = Doctor.objects.all()
+
+    result = []
+
+    for doctor in doctors:
+
+        slots = AppointmentSlots.objects.filter(doctor=doctor, is_booked=False)
+
+        grouped = defaultdict(list)
+
+        for slot in slots:
+            grouped[str(slot.date)].append({
+                "id": slot.id,
+                "start_time": slot.start_time,
+                "end_time": slot.end_time
+            })
+
+        result.append({
+            "doctor": {
+                "id": doctor.id,
+                "firstName": doctor.firstName,
+                "lastName": doctor.lastName,
+                "speciality": doctor.speciality
+            },
+            "grouped_slots": grouped
+        })
+
+    return Response(result)

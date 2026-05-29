@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from app.viewsets import DoctorViewSet, AppointmentSlotViewSet, AppointmentViewSet, PatientViewSet, UserViewSet, \
-    RegisterViewSet, check_auth, me, getdoctorappointment
+    RegisterViewSet, check_auth, me, doctors_with_slots
 
 router = DefaultRouter()
 
@@ -16,6 +16,7 @@ urlpatterns =[
 path('register/', RegisterViewSet.as_view()),
 path('check_auth/', check_auth),
 path('me/', me),
-path('getdoctorappointment/<int:doctor_id>/', getdoctorappointment),
+path('doctors_with_slots/', doctors_with_slots),
+
 
 ] + router.urls

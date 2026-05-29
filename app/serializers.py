@@ -40,17 +40,18 @@ class AppointmentSlotsSerializer(serializers.ModelSerializer):
         date = attrs.get('date')
         start_time = attrs.get('start_time')
         end_time = attrs.get('end_time')
-
-        # If any required field is missing, let other validations handle it
-        if doctor is None or date is None or start_time is None or end_time is None:
-            return attrs
-
         # Check if start_time is before end_time
         if start_time >= end_time:
             raise serializers.ValidationError({
                 'start_time': 'Start time must be before end time.',
                 'end_time': 'End time must be after start time.'
             })
+
+        # validate overlap if doctor exists
+        if doctor is None:
+            return attrs
+
+
 
         # Find existing slots for the same doctor and date
         existing_slots = AppointmentSlots.objects.filter(
