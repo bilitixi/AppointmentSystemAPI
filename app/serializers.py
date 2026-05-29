@@ -40,12 +40,14 @@ class AppointmentSlotsSerializer(serializers.ModelSerializer):
         date = attrs.get('date')
         start_time = attrs.get('start_time')
         end_time = attrs.get('end_time')
-        # Check if start_time is before end_time
-        if start_time >= end_time:
-            raise serializers.ValidationError({
-                'start_time': 'Start time must be before end time.',
-                'end_time': 'End time must be after start time.'
-            })
+        # Only validate if BOTH are being updated
+        if start_time is not None and end_time is not None:
+            # Check if start_time is before end_time
+            if start_time >= end_time:
+                raise serializers.ValidationError({
+                    'start_time': 'Start time must be before end time.',
+                    'end_time': 'End time must be after start time.'
+                })
 
         # validate overlap if doctor exists
         if doctor is None:
@@ -73,6 +75,8 @@ class AppointmentSlotsSerializer(serializers.ModelSerializer):
                 })
 
         return attrs
+
+
 class AppointmentSerializer(serializers.ModelSerializer):
 
     patient_name = serializers.SerializerMethodField()

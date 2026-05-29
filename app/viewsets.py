@@ -91,6 +91,31 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
                     status='pending'
                 )
 
+    def perform_update(self, serializer):
+        user = self.request.user
+
+        if user.is_staff:
+            serializer.save()
+
+            return
+
+        # user restriction
+        allowed_fields = {"is_booked"}
+
+        for field in serializer.validated_data.keys():
+            if field not in allowed_fields:
+                raise serializers.ValidationError(
+                    f"You cannot update '{field}'"
+                )
+
+        serializer.save()
+        Appointment.objects.create(
+            patient=Patient.objects.filter(user=user).first(),
+            slot=serializer.instance,
+            status='confirmed'
+        )
+
+
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -153,7 +178,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             slot.is_booked = True
             slot.save()
 
-            # Create appointment (inside transaction - critical fix!)
+            # Create appointment
             serializer.save(patient=patient, status='confirmed', slot=slot)
 
     # delete appointment
