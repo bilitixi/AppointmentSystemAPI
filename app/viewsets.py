@@ -93,6 +93,7 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
                 )
 
 
+
 class AppointmentViewSet(viewsets.ModelViewSet):
 
     serializer_class = AppointmentSerializer
