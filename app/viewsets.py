@@ -77,7 +77,6 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError(
                         "Overlapping appointment exists"
                     )
-
                 # create appointment slot
                 slot = serializer.save(
                     doctor=None,
