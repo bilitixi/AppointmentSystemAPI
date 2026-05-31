@@ -277,3 +277,30 @@ def doctors_with_slots(request):
         })
 
     return Response(result)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def doctor_slots(request,doctor_id):
+    result = []
+    doctor = Doctor.objects.get(id=doctor_id)
+    slots = AppointmentSlots.objects.filter(doctor=doctor, is_booked=False)
+
+    grouped = defaultdict(list)
+
+    for slot in slots:
+
+        grouped[str(slot.date)].append({
+            "id": slot.id,
+            "start_time": slot.start_time,
+            "end_time": slot.end_time
+        })
+    result.append({
+        "doctor": {
+            "id": doctor.id,
+            "firstName": doctor.firstName,
+            "lastName": doctor.lastName,
+            "speciality": doctor.speciality
+        },
+        "grouped_slots": grouped
+    })
+    return Response(result)
+
