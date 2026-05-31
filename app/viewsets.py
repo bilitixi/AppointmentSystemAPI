@@ -218,8 +218,19 @@ class PatientViewSet(viewsets.ModelViewSet):
         serializer.save(user=user)
     def perform_destroy(self, instance):
         if self.request.user.is_staff:
-            user = instance.user
-            user.delete()
+
+            patientappointments = Appointment.objects.filter(
+                patient=instance
+            ).select_related("slot")
+
+            # get slot ids
+            slot_ids = [a.slot_id for a in patientappointments]
+
+            AppointmentSlots.objects.filter(
+                id__in=slot_ids
+            ).update(is_booked=False)
+
+            # delete patient
             instance.delete()
             return
         else:
