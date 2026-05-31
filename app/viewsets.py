@@ -126,16 +126,18 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
 
     def get_queryset(self):
-
         queryset = Appointment.objects.all()
+        user = self.request.user
 
-        if not self.request.user.is_staff:
-            return queryset.filter(patient__user=self.request.user)
+        # 👤 NON-ADMIN: only their own appointments
+        if not user.is_staff:
+            return queryset.filter(patient__user=user)
 
-        # admin filtering
+        # 🧑‍💼 ADMIN: can filter by patient_id
         patient_id = self.request.query_params.get('patient_id')
+
         if patient_id:
-            queryset = queryset.filter(patient_id=patient_id)
+            queryset = queryset.filter(patient__id=patient_id)
 
         return queryset
     # Create appointment
@@ -214,6 +216,25 @@ class PatientViewSet(viewsets.ModelViewSet):
             return
         user = self.request.user
         serializer.save(user=user)
+    def perform_destroy(self, instance):
+        if self.request.user.is_staff:
+            user = instance.user
+            user.delete()
+            instance.delete()
+            return
+        else:
+            user = self.request.user
+            if user != instance.user:
+                raise serializers.ValidationError("You are not allowed to delete this patient")
+            user.delete()
+            instance.delete()
+    def perform_update(self, serializer):
+        if self.request.user.is_staff:
+            serializer.save()
+            return
+        user = self.request.user
+        serializer.save(user=user)
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -304,4 +325,6 @@ def doctor_slots(request,doctor_id):
         "grouped_slots": grouped
     })
     return Response(result)
+
+
 
