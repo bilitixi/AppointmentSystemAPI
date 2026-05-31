@@ -53,7 +53,8 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         if self.request.user.is_staff:
             with transaction.atomic():
-               serializer.save(is_booked=False)
+
+               serializer.save(is_booked=False, doctor= serializer.validated_data["doctor"])
             return
         else:
             # get patient
