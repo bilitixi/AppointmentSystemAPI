@@ -129,11 +129,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         queryset = Appointment.objects.all()
         user = self.request.user
 
-        # 👤 NON-ADMIN: only their own appointments
+        #  only their own appointments
         if not user.is_staff:
             return queryset.filter(patient__user=user)
 
-        # 🧑‍💼 ADMIN: can filter by patient_id
+        #  can filter by patient_id
         patient_id = self.request.query_params.get('patient_id')
 
         if patient_id:
