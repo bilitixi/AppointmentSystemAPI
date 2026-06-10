@@ -16,6 +16,7 @@ class AppointmentSlotsSerializer(serializers.ModelSerializer):
 
     doctor_name = serializers.SerializerMethodField()
 
+
     class Meta:
         model = AppointmentSlots
         fields = [
@@ -26,13 +27,15 @@ class AppointmentSlotsSerializer(serializers.ModelSerializer):
             'start_time',
             'end_time',
             'is_booked',
-            'speciality'
+            'speciality',
+
         ]
 
     def get_doctor_name(self, obj):
         if obj.doctor:
             return str(obj.doctor)
         return None
+
 
     def validate(self, attrs):
         # Check for overlapping time slots for the same doctor on the same date
@@ -82,6 +85,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     doctor_name = serializers.SerializerMethodField()
     slot_info = serializers.SerializerMethodField()
+    doctorID = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -94,8 +98,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'doctor_name',
             'status',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'doctorID'
         ]
+    def get_doctorID(self, obj):
+        if obj.slot and obj.slot.doctor:
+            return obj.slot.doctor.id
+        return None
     def get_patient_name(self, obj):
         return str(obj.patient)
 
@@ -110,7 +119,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "date": slot.date,
             "start_time": slot.start_time,
             "end_time": slot.end_time,
-            "speciality": slot.speciality
+            "speciality": slot.speciality,
+            "appointmentslotID": slot.id
         }
 class UserSerializer(serializers.ModelSerializer):
 
