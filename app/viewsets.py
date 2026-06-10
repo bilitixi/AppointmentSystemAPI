@@ -232,6 +232,10 @@ class PatientViewSet(viewsets.ModelViewSet):
 
             # delete patient
             instance.delete()
+            # delete user
+            user = instance.user
+            user.delete()
+
             return
         else:
             user = self.request.user
