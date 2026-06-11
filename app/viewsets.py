@@ -186,18 +186,16 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
     # delete appointment
     def perform_destroy(self, instance):
-
         slot = instance.slot
-        # Free slot if slot is allocated doctors
-        if slot.doctor is not None:
 
+        if slot.doctor is not None:
             slot.is_booked = False
             slot.save()
-        # delete slot if doctor is not allocated to slot
         else:
-           slot.delete()
-
+            slot.delete()
         instance.delete()
+
+
 
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = Patient.objects.all()
