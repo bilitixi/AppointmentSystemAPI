@@ -121,7 +121,7 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
                     f"You cannot update '{field}'"
                 )
 
-        serializer.save()
+        serializer.save(is_booked=True)
         Appointment.objects.create(
             patient=Patient.objects.filter(user=user).first(),
             slot=serializer.instance,
