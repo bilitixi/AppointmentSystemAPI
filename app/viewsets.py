@@ -97,6 +97,18 @@ class AppointmentSlotViewSet(viewsets.ModelViewSet):
 
         if user.is_staff:
             serializer.save()
+            appointmentSlot = serializer.instance
+            appointment = Appointment.objects.filter(slot=appointmentSlot).first()
+            if not appointment:
+                return
+
+            if appointmentSlot.doctor:
+                appointment.status = 'confirmed'
+                appointment.save()
+            else:
+                appointment.status = 'pending'
+                appointment.save()
+
 
             return
 
