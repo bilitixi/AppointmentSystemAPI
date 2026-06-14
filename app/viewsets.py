@@ -420,3 +420,8 @@ def create_patient(request):
                               address=address)
     return Response({"message": "Patients created successfully."})
 
+@api_view(['GET'])
+def logout(request):
+    user = request.user
+    user.auth_token.delete()
+    return Response({"message": "Logout successful"}, status=200)

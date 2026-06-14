@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from app.viewsets import DoctorViewSet, AppointmentSlotViewSet, AppointmentViewSet, PatientViewSet, UserViewSet, \
     RegisterViewSet, check_auth, me, doctors_with_slots, doctor_slots, admin_book_appointment_for_patient, \
-    create_patient
+    create_patient, logout
 
 router = DefaultRouter()
 
@@ -20,6 +20,7 @@ path('me/', me),
 path('doctors_with_slots/', doctors_with_slots),
 path('doctor_slots/<int:doctor_id>',doctor_slots),
 path('book_appointment_for_patient/<int:patientID>',admin_book_appointment_for_patient),
-path('createpatients/', create_patient)
+path('createpatients/', create_patient),
+path('logout/', logout),
 
 ] + router.urls
