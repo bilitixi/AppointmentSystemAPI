@@ -137,6 +137,18 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Appointment.objects.all()
 
+    def get_permissions(self):
+
+        # Staff can do everything
+        if self.request.user.is_staff:
+            return [permissions.IsAuthenticated()]
+
+        # Regular users can only view and delete
+        if self.action in ["list", "retrieve", "destroy"]:
+            return [permissions.IsAuthenticated()]
+
+        return [permissions.IsAdminUser()]
+
     def get_queryset(self):
         queryset = Appointment.objects.all()
         user = self.request.user
@@ -153,6 +165,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         return queryset
     # Create appointment
+    """
     def perform_create(self, serializer):
 
         # Admin create new appointment
@@ -195,7 +208,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
             # Create appointment
             serializer.save(patient=patient, status='confirmed', slot=slot)
-
+    """
     # delete appointment
     def perform_destroy(self, instance):
         slot = instance.slot
@@ -350,6 +363,29 @@ def doctor_slots(request,doctor_id):
         "grouped_slots": grouped
     })
     return Response(result)
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def admin_book_appointment_for_patient(request,patientID):
+    selectedDoctor = Doctor.objects.get(id=request.data['doctor'])
+    selectedPatient = Patient.objects.get(id=patientID)
+
+    appointmentSLot = AppointmentSlots.objects.create(doctor=selectedDoctor,
+        date=request.data['date'],
+        start_time=request.data['start_time'],
+        end_time=request.data['end_time'],
+        is_booked=True
+
+    )
+
+
+
+    appointment = Appointment.objects.create(
+        patient=selectedPatient,
+        status='confirmed',
+        slot= appointmentSLot
+    )
+
+    return Response({"message": "Appointment created successfully"})
 
 
 
