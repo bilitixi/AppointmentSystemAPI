@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import date, timedelta
 
+import pandas as pd
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from rest_framework import viewsets, permissions, serializers, generics
@@ -278,12 +279,11 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     def get_queryset(self):
         if self.request.user.is_staff:
             return User.objects.all()
         return None
-
-
 
 
 class RegisterViewSet(generics.CreateAPIView):
@@ -388,4 +388,35 @@ def admin_book_appointment_for_patient(request,patientID):
     return Response({"message": "Appointment created successfully"})
 
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def create_patient(request):
+    names_file = request.FILES['names_file']
+    excel_read = pd.read_excel(names_file)
+    data = pd.DataFrame(excel_read,
+                        columns=['email', 'password', 'first_name', 'last_name', 'date_of_birth', 'address'])
+    usernames = data['email'].tolist()
+    passwords = data['password'].tolist()
+    first_names = data['first_name'].tolist()
+    last_names = data['last_name'].tolist()
+    DOBs = data['date_of_birth'].tolist()
+    addresses = data['address'].tolist()
+    for username, password, first_name, last_name, DOB, address in zip(usernames, passwords, first_names, last_names,
+                                                                       DOBs, addresses):
+        try:
+            user = User.objects.get(username=username)
+            user.delete()
+            user = User(username=username, first_name=first_name, last_name=last_name, email=username)
+            user.set_password(password)
+            user.save()
+            patient = Patient(user=user, firstName=first_name, lastName=last_name, date_of_birth=DOB,
+                              address=address)
+            patient.save()
+        except User.DoesNotExist:
+            user = User(username=username, first_name=first_name, last_name=last_name, email=username)
+            user.set_password(password)
+            user.save()
+            patient = Patient(user=user, firstName=first_name, lastName=last_name, date_of_birth=DOB,
+                              address=address)
+    return Response({"message": "Patients created successfully."})
 

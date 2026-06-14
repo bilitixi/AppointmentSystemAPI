@@ -124,7 +124,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
         }
 class UserSerializer(serializers.ModelSerializer):
 
-
     class Meta:
         model = User
         fields = ['id', 'username', 'password']
@@ -164,7 +163,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         patient_date_of_birth = validated_data.pop('patient_date_of_birth')
         patient_address = validated_data.pop('patient_address')
 
-        user = User.objects.create_user(**validated_data)
+        user = User.objects.create_user(username = validated_data['username'], password = validated_data['password'],email = validated_data['username'],first_name = patient_firstName, last_name = patient_lastName)
         Token.objects.create(user=user)  # create token
         Patient.objects.create(
             user=user,
