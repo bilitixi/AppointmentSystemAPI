@@ -141,5 +141,5 @@ REST_FRAMEWORK = {
     ]
 }
 CORS_ALLOWED_ORIGINS = [
-    "https://appointmentsytemui.vercel.app/",
+    "https://appointmentsytemui.vercel.app",
 ]
