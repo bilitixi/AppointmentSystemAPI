@@ -418,6 +418,7 @@ def create_patient(request):
             user.save()
             patient = Patient(user=user, firstName=first_name, lastName=last_name, date_of_birth=DOB,
                               address=address)
+            patient.save()
     return Response({"message": "Patients created successfully."})
 
 @api_view(['GET'])
