@@ -405,10 +405,12 @@ def admin_book_appointment_for_patient(request,patientID):
 
 
 
-        appointment = Appointment.objects.create(
+        Appointment.objects.create(
             patient=selectedPatient,
             status='confirmed',
-            slot= appointmentSLot
+            slot= appointmentSLot,
+
+
         )
 
         return Response({"message": "Appointment created successfully"})
