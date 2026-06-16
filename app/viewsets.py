@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 import pandas as pd
 from django.contrib.auth.models import User
@@ -368,24 +368,50 @@ def doctor_slots(request,doctor_id):
 def admin_book_appointment_for_patient(request,patientID):
     selectedDoctor = Doctor.objects.get(id=request.data['doctor'])
     selectedPatient = Patient.objects.get(id=patientID)
+    start_time = datetime.strptime(
+        request.data['start_time'],
+        "%H:%M:%S"
+    ).time()
 
-    appointmentSLot = AppointmentSlots.objects.create(doctor=selectedDoctor,
-        date=request.data['date'],
-        start_time=request.data['start_time'],
-        end_time=request.data['end_time'],
-        is_booked=True
+    end_time = datetime.strptime(
+        request.data['end_time'],
+        "%H:%M:%S"
+    ).time()
+    if start_time > end_time:
+        return Response({"message": "Invalid time range"})
+    with transaction.atomic():
 
-    )
+        # check BEFORE saving anything
+        if Appointment.objects.filter(
+                patient=selectedPatient,
+                slot__date=request.data["date"],
+                slot__start_time__lt=end_time,
+                slot__end_time__gt=start_time
+        ).exists():
+            raise serializers.ValidationError(
+                "Overlapping appointment exists"
+            )
+
+
+        appointmentSLot = AppointmentSlots.objects.create(doctor=selectedDoctor,
+            date=request.data['date'],
+            start_time=request.data['start_time'],
+            end_time=request.data['end_time'],
+            is_booked=True,
+            speciality= request.data['speciality']
+
+
+        )
 
 
 
-    appointment = Appointment.objects.create(
-        patient=selectedPatient,
-        status='confirmed',
-        slot= appointmentSLot
-    )
+        appointment = Appointment.objects.create(
+            patient=selectedPatient,
+            status='confirmed',
+            slot= appointmentSLot
+        )
 
-    return Response({"message": "Appointment created successfully"})
+        return Response({"message": "Appointment created successfully"})
 
 
 @api_view(['POST'])
