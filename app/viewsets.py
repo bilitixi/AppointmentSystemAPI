@@ -377,7 +377,7 @@ def admin_book_appointment_for_patient(request,patientID):
         request.data['end_time'],
         "%H:%M"
     ).time()
-    if start_time > end_time:
+    if start_time >= end_time:
         return Response({"message": "Invalid time range"})
     with transaction.atomic():
 
