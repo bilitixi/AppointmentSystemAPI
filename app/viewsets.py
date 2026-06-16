@@ -370,12 +370,12 @@ def admin_book_appointment_for_patient(request,patientID):
     selectedPatient = Patient.objects.get(id=patientID)
     start_time = datetime.strptime(
         request.data['start_time'],
-        "%H:%M:%S"
+        "%H:%M"
     ).time()
 
     end_time = datetime.strptime(
         request.data['end_time'],
-        "%H:%M:%S"
+        "%H:%M"
     ).time()
     if start_time > end_time:
         return Response({"message": "Invalid time range"})
