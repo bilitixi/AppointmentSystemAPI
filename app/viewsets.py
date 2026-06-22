@@ -1,13 +1,15 @@
 from collections import defaultdict
-from datetime import date, timedelta, datetime, timezone
+from datetime import date, timedelta, datetime
 
 import pandas as pd
 from django.contrib.auth.models import User
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import viewsets, permissions, serializers, generics
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
