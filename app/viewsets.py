@@ -316,8 +316,8 @@ def doctors_with_slots(request):
     for doctor in doctors:
 
         slots = AppointmentSlots.objects.filter(doctor=doctor, is_booked=False, date__range=[
-        timezone.now(),
-        timezone.now() + timedelta(days=7)
+        timezone.localdate(),
+        timezone.localdate() + timedelta(days=7)
     ])
 
         grouped = defaultdict(list)
