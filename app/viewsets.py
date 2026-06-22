@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 
 import pandas as pd
 from django.contrib.auth.models import User
@@ -315,7 +315,10 @@ def doctors_with_slots(request):
 
     for doctor in doctors:
 
-        slots = AppointmentSlots.objects.filter(doctor=doctor, is_booked=False)
+        slots = AppointmentSlots.objects.filter(doctor=doctor, is_booked=False, date__range=[
+        timezone.now(),
+        timezone.now() + timedelta(days=7)
+    ])
 
         grouped = defaultdict(list)
 
