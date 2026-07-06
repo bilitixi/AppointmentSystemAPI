@@ -2,7 +2,8 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from app.viewsets import DoctorViewSet, AppointmentSlotViewSet, AppointmentViewSet, PatientViewSet, UserViewSet, \
     RegisterViewSet, check_auth, me, doctors_with_slots, doctor_slots, admin_book_appointment_for_patient, \
-    create_patient, logout, verify_email, resend_verification_email
+    create_patient, logout, verify_email, resend_verification_email, email_settings, email_template, \
+    send_test_email
 
 router = DefaultRouter()
 
@@ -24,5 +25,8 @@ path('createpatients/', create_patient),
 path('logout/', logout),
 path('verify_email/<str:token>/', verify_email),
 path('resend_verification_email/', resend_verification_email),
+path('notifications/email-settings/', email_settings),
+path('notifications/email-templates/<str:template_type>/', email_template),
+path('notifications/email/test/', send_test_email),
 
 ] + router.urls

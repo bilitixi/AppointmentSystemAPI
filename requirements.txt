@@ -1,4 +1,6 @@
+aiosmtplib==3.0.2
 asgiref==3.11.1
+cryptography==44.0.0
 Django==6.0.5
 django-cors-headers==4.9.0
 django-stubs==6.0.4
