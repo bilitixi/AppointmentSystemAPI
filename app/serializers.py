@@ -1,7 +1,10 @@
+import logging
+
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
+from app.emails import generate_verification_token, send_verification_email
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -165,13 +168,21 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         user = User.objects.create_user(username = validated_data['username'], password = validated_data['password'],email = validated_data['username'],first_name = patient_firstName, last_name = patient_lastName)
         Token.objects.create(user=user)  # create token
-        Patient.objects.create(
+        patient = Patient.objects.create(
             user=user,
             firstName=patient_firstName,
             lastName=patient_lastName,
             phone=patient_phone,
             date_of_birth=patient_date_of_birth,
-            address=patient_address
+            address=patient_address,
+            email_verification_token=generate_verification_token()
         )
+
+        try:
+            send_verification_email(user, patient)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Failed to send verification email to %s", user.email
+            )
 
         return user
