@@ -14,12 +14,8 @@ from rest_framework.response import Response
 from app.emails import generate_verification_token, send_verification_email
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
-from app.repositories.email_template import get_template, update_template
-from app.repositories.notification_email import get_settings, update_settings
 from app.serializers import PatientSerializer, DoctorSerializer, AppointmentSerializer, AppointmentSlotsSerializer, \
-    UserSerializer, RegisterSerializer, NotificationEmailSettingsSerializer, EmailTemplateSerializer
-from app.services.email_delivery import EmailDeliveryError
-from app.services.email_service import NotificationEmailService, TemplateNotConfiguredError
+    UserSerializer, RegisterSerializer
 from django.db import transaction
 def home(request):
     return HttpResponse("Hello World")
@@ -504,64 +500,6 @@ def resend_verification_email(request):
     patient.email_verification_token = generate_verification_token()
     patient.save()
 
-    try:
-        send_verification_email(user, patient)
-    except EmailDeliveryError as exc:
-        return Response({"message": str(exc)}, status=502)
+    send_verification_email(user, patient)
 
     return Response({"message": "Verification email sent"}, status=200)
-
-
-@api_view(['GET', 'PATCH'])
-@permission_classes([IsAdminStaff])
-def email_settings(request):
-    if request.method == 'GET':
-        serializer = NotificationEmailSettingsSerializer(get_settings())
-        return Response(serializer.data)
-
-    serializer = NotificationEmailSettingsSerializer(get_settings(), data=request.data, partial=True)
-    serializer.is_valid(raise_exception=True)
-
-    data = dict(serializer.validated_data)
-    settings_row = update_settings(data)
-
-    return Response(NotificationEmailSettingsSerializer(settings_row).data)
-
-
-@api_view(['GET', 'PATCH'])
-@permission_classes([IsAdminStaff])
-def email_template(request, template_type):
-    if request.method == 'GET':
-        template = get_template(template_type)
-        if template is None:
-            return Response({"message": "Template not found"}, status=404)
-        return Response(EmailTemplateSerializer(template).data)
-
-    template = update_template(
-        template_type,
-        subject=request.data.get('subject'),
-        body=request.data.get('body'),
-    )
-    return Response(EmailTemplateSerializer(template).data)
-
-
-@api_view(['POST'])
-@permission_classes([IsAdminStaff])
-def send_test_email(request):
-    to_email = request.data.get('to_email')
-
-    if not to_email:
-        return Response({"message": "to_email is required"}, status=400)
-
-    try:
-        NotificationEmailService.send_templated(
-            'test_email',
-            to_email,
-            {"to_email": to_email}
-        )
-    except TemplateNotConfiguredError as exc:
-        return Response({"message": str(exc)}, status=400)
-    except EmailDeliveryError as exc:
-        return Response({"message": str(exc)}, status=502)
-
-    return Response({"message": "Test email sent"}, status=200)

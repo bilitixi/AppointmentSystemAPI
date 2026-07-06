@@ -145,12 +145,15 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Email
-# SMTP connection details (host/port/username/password/etc.) are NOT read from
-# environment variables. They live in the NotificationEmailSettings DB row and
-# are managed at runtime via the /notifications/email-settings/ admin API.
-# EMAIL_ENCRYPTION_KEY encrypts the stored SMTP password at rest, falling back
-# to SECRET_KEY if unset.
-EMAIL_ENCRYPTION_KEY = os.getenv("EMAIL_ENCRYPTION_KEY", "")
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
 # Base URL of the frontend, used to build the email verification link
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://appointmentsytemui.vercel.app")

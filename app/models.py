@@ -46,31 +46,5 @@ class Appointment(models.Model):
         return f"{self.patient} - {self.slot} - {self.status} - {self.created_at}"
 
 
-class NotificationEmailSettings(models.Model):
-    enabled = models.BooleanField(default=True)
-    transport = models.CharField(max_length=20, default="smtp")
-    from_email = models.EmailField(blank=True)
-    from_name = models.CharField(max_length=255, blank=True)
-    reply_to = models.EmailField(blank=True)
-    smtp_host = models.CharField(max_length=255, blank=True)
-    smtp_port = models.PositiveIntegerField(default=587)
-    smtp_use_tls = models.BooleanField(default=True)
-    smtp_username = models.CharField(max_length=255, blank=True)
-    smtp_password_encrypted = models.CharField(max_length=512, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"NotificationEmailSettings(host={self.smtp_host}, enabled={self.enabled})"
-
-
-class EmailTemplate(models.Model):
-    template_type = models.CharField(max_length=100, unique=True)
-    subject = models.CharField(max_length=255)
-    body = models.TextField()
-
-    def __str__(self):
-        return self.template_type
-
-
 
 

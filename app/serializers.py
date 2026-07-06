@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
 from app.emails import generate_verification_token, send_verification_email
-from app.models import Patient, Doctor, AppointmentSlots, Appointment, NotificationEmailSettings, EmailTemplate
+from app.models import Patient, Doctor, AppointmentSlots, Appointment
 
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
@@ -186,32 +186,3 @@ class RegisterSerializer(serializers.ModelSerializer):
             )
 
         return user
-
-
-class NotificationEmailSettingsSerializer(serializers.ModelSerializer):
-    smtp_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
-
-    class Meta:
-        model = NotificationEmailSettings
-        fields = [
-            'id',
-            'enabled',
-            'transport',
-            'from_email',
-            'from_name',
-            'reply_to',
-            'smtp_host',
-            'smtp_port',
-            'smtp_use_tls',
-            'smtp_username',
-            'smtp_password',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'updated_at']
-
-
-class EmailTemplateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailTemplate
-        fields = ['id', 'template_type', 'subject', 'body']
-        read_only_fields = ['id', 'template_type']
