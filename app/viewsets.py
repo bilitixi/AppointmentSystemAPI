@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 
+from app.emails import generate_verification_token, send_verification_email
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
 from app.serializers import PatientSerializer, DoctorSerializer, AppointmentSerializer, AppointmentSlotsSerializer, \
@@ -459,3 +460,46 @@ def logout(request):
     user = request.user
     user.auth_token.delete()
     return Response({"message": "Logout successful"}, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def verify_email(request, token):
+    patient = Patient.objects.filter(email_verification_token=token).first()
+
+    if not patient:
+        return Response({"message": "Invalid or expired verification link"}, status=400)
+
+    if patient.is_email_verified:
+        return Response({"message": "Email already verified"}, status=200)
+
+    patient.is_email_verified = True
+    patient.email_verification_token = None
+    patient.save()
+
+    return Response({"message": "Email verified successfully"}, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def resend_verification_email(request):
+    username = request.data.get('username')
+    user = User.objects.filter(username=username).first()
+
+    if not user:
+        return Response({"message": "User not found"}, status=404)
+
+    patient = Patient.objects.filter(user=user).first()
+
+    if not patient:
+        return Response({"message": "Patient profile not found"}, status=404)
+
+    if patient.is_email_verified:
+        return Response({"message": "Email already verified"}, status=200)
+
+    patient.email_verification_token = generate_verification_token()
+    patient.save()
+
+    send_verification_email(user, patient)
+
+    return Response({"message": "Verification email sent"}, status=200)
