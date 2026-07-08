@@ -1,8 +1,11 @@
+import logging
 from collections import defaultdict
 from datetime import date, timedelta, datetime
 
 import pandas as pd
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets, permissions, serializers, generics
@@ -11,7 +14,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 
-from app.emails import generate_verification_token, send_verification_email
+from app.emails import (
+    generate_verification_token,
+    send_verification_email,
+    generate_password_reset_token,
+    send_password_reset_email,
+)
 from app.models import Patient, Doctor, AppointmentSlots, Appointment
 from app.permissions import IsAdminStaff, IsOwnerOnly
 from app.serializers import PatientSerializer, DoctorSerializer, AppointmentSerializer, AppointmentSlotsSerializer, \
@@ -503,3 +511,76 @@ def resend_verification_email(request):
     send_verification_email(user, patient)
 
     return Response({"message": "Verification email sent"}, status=200)
+
+
+PASSWORD_RESET_TOKEN_LIFETIME = timedelta(hours=1)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def forgot_password(request):
+    username = request.data.get('username')
+    generic_response = Response(
+        {"message": "If an account with that email exists, a password reset link has been sent."},
+        status=200
+    )
+
+    if not username:
+        return Response({"message": "username is required"}, status=400)
+
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return generic_response
+
+    patient = Patient.objects.filter(user=user).first()
+    if not patient:
+        return generic_response
+
+    patient.password_reset_token = generate_password_reset_token()
+    patient.password_reset_token_created_at = timezone.now()
+    patient.save()
+
+    try:
+        send_password_reset_email(user, patient)
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "Failed to send password reset email to %s", user.email
+        )
+
+    return generic_response
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def reset_password(request):
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+
+    if not token or not new_password:
+        return Response({"message": "token and new_password are required"}, status=400)
+
+    patient = Patient.objects.filter(password_reset_token=token).first()
+    if not patient or not patient.password_reset_token_created_at:
+        return Response({"message": "Invalid or expired password reset link"}, status=400)
+
+    if timezone.now() - patient.password_reset_token_created_at > PASSWORD_RESET_TOKEN_LIFETIME:
+        patient.password_reset_token = None
+        patient.password_reset_token_created_at = None
+        patient.save()
+        return Response({"message": "Invalid or expired password reset link"}, status=400)
+
+    user = patient.user
+
+    try:
+        validate_password(new_password, user=user)
+    except DjangoValidationError as exc:
+        return Response({"message": exc.messages}, status=400)
+
+    user.set_password(new_password)
+    user.save()
+
+    patient.password_reset_token = None
+    patient.password_reset_token_created_at = None
+    patient.save()
+
+    return Response({"message": "Password reset successfully"}, status=200)
