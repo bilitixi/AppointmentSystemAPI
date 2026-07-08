@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "appointmentsystemapi-ujod.onrender.com",
+
 ]
 
 
@@ -142,6 +143,8 @@ REST_FRAMEWORK = {
 }
 CORS_ALLOWED_ORIGINS = [
     "https://appointmentsytemui.vercel.app",
+"http://127.0.0.1:3000"
+
 ]
 
 # Email
