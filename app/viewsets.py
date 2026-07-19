@@ -276,13 +276,36 @@ class PatientViewSet(viewsets.ModelViewSet):
             user = self.request.user
             if user != instance.user:
                 raise serializers.ValidationError("You are not allowed to delete this patient")
-            user.delete()
-            instance.delete()
+
+            with transaction.atomic():
+                appointments = Appointment.objects.filter(
+                    patient=instance
+                ).select_related("slot")
+
+                for appointment in appointments:
+                    slot = appointment.slot
+                    if slot.doctor is not None:
+                        slot.is_booked = False
+                        slot.save()
+                    else:
+                        slot.delete()
+
+                instance.delete()
+                user.delete()
     def perform_update(self, serializer):
         if self.request.user.is_staff:
             serializer.save()
             return
         user = self.request.user
+
+        allowed_fields = {"firstName", "lastName", "phone", "date_of_birth", "address"}
+
+        for field in serializer.validated_data.keys():
+            if field not in allowed_fields:
+                raise serializers.ValidationError(
+                    f"You cannot update '{field}'"
+                )
+
         serializer.save(user=user)
 
 
